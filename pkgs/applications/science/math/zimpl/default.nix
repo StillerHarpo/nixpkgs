@@ -14,8 +14,8 @@ in stdenv.mkDerivation {
 
   meta = with stdenv.lib; {
     description = "An mathematical modeling language for optimization problems";
-    homepage = https://www.zimpl.zib.de/;
-    license = licenses.LGPL;
+    homepage = https://zimpl.zib.de/;
+    license = licenses.lgpl3plus;
     platforms = platforms.unix;
     maintainers = [ maintainers.StillerHarpo ];
   };
