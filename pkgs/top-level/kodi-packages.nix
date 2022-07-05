@@ -100,6 +100,8 @@ let self = rec {
 
   youtube = callPackage ../applications/video/kodi/addons/youtube { };
 
+  invidious = callPackage ../applications/video/kodi/addons/invidious { };
+
   # addon packages (dependencies)
 
   archive_tool = callPackage ../applications/video/kodi/addons/archive_tool { };
