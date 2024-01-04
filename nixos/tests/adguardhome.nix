@@ -2,9 +2,7 @@
   name = "adguardhome";
 
   nodes = {
-    nullConf = { ... }: { services.adguardhome = { enable = true; }; };
-
-    emptyConf = { lib, ... }: {
+    emptyConf = { pkgs, ... }: {
       services.adguardhome = {
         enable = true;
       };
@@ -13,10 +11,27 @@
     declarativeConf = { ... }: {
       services.adguardhome = {
         enable = true;
+        openFirewall = true;
 
         mutableSettings = false;
         settings = {
           schema_version = 0;
+          dns = {
+            bind_host = "0.0.0.0";
+            bootstrap_dns = "127.0.0.1";
+          };
+        };
+      };
+    };
+
+    configuredAddress = { ... }: {
+      services.adguardhome = {
+        enable = true;
+        openFirewall = true;
+        mutableSettings = false;
+        settings = {
+          schema_version = 0;
+          http.address = "0.0.0.0:7777";
           dns = {
             bind_host = "0.0.0.0";
             bootstrap_dns = "127.0.0.1";
@@ -103,9 +118,6 @@
   };
 
   testScript = ''
-    with subtest("Minimal (settings = null) config test"):
-        nullConf.wait_for_unit("adguardhome.service")
-
     with subtest("Default config test"):
         emptyConf.wait_for_unit("adguardhome.service")
         emptyConf.wait_for_open_port(3000)
@@ -114,6 +126,15 @@
         declarativeConf.wait_for_unit("adguardhome.service")
         declarativeConf.wait_for_open_port(53)
         declarativeConf.wait_for_open_port(3000)
+
+    with subtest("Firewall for default port is open"):
+        emptyConf.wait_until_succeeds("curl -v declarativeConf:3000 >&2")
+
+    with subtest("Firewall for configured address is open"):
+        configuredAddress.wait_for_unit("adguardhome.service")
+        configuredAddress.wait_for_open_port(53)
+        configuredAddress.wait_for_open_port(7777)
+        emptyConf.wait_until_succeeds("curl -v configuredAddress:7777 >&2")
 
     with subtest("Mixed config test, check whether merging works"):
         mixedConf.wait_for_unit("adguardhome.service")

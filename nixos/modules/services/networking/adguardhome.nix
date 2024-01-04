@@ -5,6 +5,14 @@ with lib;
 let
   cfg = config.services.adguardhome;
 
+  defaultBindPort = 3000;
+
+  bindPort =
+    if attrsets.hasAttrByPath [ "settings" "http" "address" ] cfg
+    # the type of this option should ensure that this always works
+    then strings.toInt (builtins.head (builtins.match "[^:]+:([1-9][0-9]*)" cfg.settings.http.address))
+    else defaultBindPort;
+
   args = concatStringsSep " " ([
     "--no-check-update"
     "--pidfile /run/AdGuardHome/AdGuardHome.pid"
@@ -17,18 +25,9 @@ let
     text = builtins.toJSON cfg.settings;
     checkPhase = "${pkgs.adguardhome}/bin/adguardhome -c $out --check-config";
   };
-  defaultBindPort = 3000;
 
 in
 {
-
-  imports =
-    let cfgPath = [ "services" "adguardhome" ];
-    in
-    [
-      (mkRenamedOptionModuleWith { sinceRelease = 2211; from = cfgPath ++ [ "host" ]; to = cfgPath ++ [ "settings" "bind_host" ]; })
-      (mkRenamedOptionModuleWith { sinceRelease = 2211; from = cfgPath ++ [ "port" ]; to = cfgPath ++ [ "settings" "bind_port" ]; })
-    ];
 
   options.services.adguardhome = with types; {
     enable = mkEnableOption (lib.mdDoc "AdGuard Home network-wide ad blocker");
@@ -79,18 +78,12 @@ in
               Defaults to the `schema_version` supplied by `pkgs.adguardhome`.
             '';
           };
-          bind_host = mkOption {
-            default = "0.0.0.0";
-            type = str;
+          http.address = mkOption {
+            default = "0.0.0.0:" + toString defaultBindPort;
+            example = "0.0.0.0:7777";
+            type = strMatching "[^:]+:[1-9][0-9]*" ;
             description = lib.mdDoc ''
-              Host address to bind HTTP server to.
-            '';
-          };
-          bind_port = mkOption {
-            default = defaultBindPort;
-            type = port;
-            description = lib.mdDoc ''
-              Port to serve HTTP pages on.
+              Address to bind HTTP server to.
             '';
           };
         };
@@ -170,6 +163,6 @@ in
       };
     };
 
-    networking.firewall.allowedTCPPorts = mkIf cfg.openFirewall [ cfg.settings.bind_port or defaultBindPort ];
+    networking.firewall.allowedTCPPorts = mkIf cfg.openFirewall [ bindPort ];
   };
 }
