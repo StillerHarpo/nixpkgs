@@ -1632,6 +1632,10 @@ let
 
           portage-navi = ignoreCompilationError super.portage-navi; # elisp error
 
+          pr-review = super.pr-review.overrideAttrs (old: {
+            nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ pkgs.git ];
+          });
+
           preview-dvisvgm = mkHome super.preview-dvisvgm;
 
           procress = mkHome super.procress;
